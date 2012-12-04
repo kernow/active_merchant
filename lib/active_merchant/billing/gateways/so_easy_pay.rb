@@ -112,7 +112,7 @@ module ActiveMerchant #:nodoc:
       end
 
       def parse(xml)
-        puts xml
+        # puts xml
         response = {}
         xml = REXML::Document.new(xml)
         root = REXML::XPath.first(xml, "//return") ||
@@ -136,10 +136,10 @@ module ActiveMerchant #:nodoc:
 
       def commit(action, money, creditcard, options)
         request = build_request(action, money, creditcard, options)
-        puts request
+        # puts request
         response = parse ssl_post(self.live_url, request, { 'Content-Type' => 'application/soap+xml; charset=utf-8' })
-        puts "****"
-        puts response
+        # puts "****"
+        # puts response
 
         success = response[:status] == "Authorized"
         message = response[:errormessage]
