@@ -37,7 +37,8 @@ module ActiveMerchant #:nodoc:
 
       def purchase(money, creditcard, options = {})
         requires!(options, :order_id)
-        commit('sale', money, creditcard, options)
+        request = build_request('sale', money, creditcard, options)
+        commit(request)
       end
 
       def capture(money, authorization, options = {})
@@ -134,8 +135,9 @@ module ActiveMerchant #:nodoc:
         end
       end
 
-      def commit(action, money, creditcard, options)
-        request = build_request(action, money, creditcard, options)
+      # def commit(action, money, creditcard, options)
+      def commit(request)
+        # request = build_request(action, money, creditcard, options)
         # puts request
         response = parse ssl_post(self.live_url, request, { 'Content-Type' => 'application/soap+xml; charset=utf-8' })
         # puts "****"
