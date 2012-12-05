@@ -23,8 +23,8 @@ class SoEasyPayTest < Test::Unit::TestCase
     assert response = @gateway.purchase(@amount, @credit_card, @options)
     assert_success response
 
-    # Replace with authorization number from the successful response
-    assert_equal '10626565', response.authorization
+    assert_equal '10626565',  response.authorization
+    assert_equal '000',       response.params['errorcode']
     assert response.test?
   end
 
@@ -36,12 +36,39 @@ class SoEasyPayTest < Test::Unit::TestCase
 
     # puts response.inspect
 
-    # Replace with authorization number from the successful response
     assert_equal 'https://secure.soeasypay.com/ThreeDSimulator.aspx', response.params['avs_result']
     assert_equal 'bbb48fba58f0cadfe68238edf9fa681387c32bbe029d66cb44c011016f02dfb9102bdd355291c3fe7d911ea044256bd64d', response.params['fs_result']
     assert_equal '10626566', response.params['transaction_id']
     assert_equal 'Issuer authentication required (3D)', response.message
     assert_equal '333', response.params['errorcode']
+    assert response.test?
+  end
+
+  def test_3d_sucessful_secure_purchase
+    @gateway.expects(:ssl_post).returns(successful_threed_secure_response)
+
+    assert response = @gateway.purchase(@amount, @credit_card, @options.merge(d3d: true, transaction_id: '1234', pa_res: '5678'))
+    assert_success response
+
+    # puts response.inspect
+
+    assert_equal '10626864', response.params['transaction_id']
+    assert_equal 'Transaction successful', response.message
+    assert_equal '000', response.params['errorcode']
+    assert response.test?
+  end
+
+  def test_3d_unsucessful_secure_purchase
+    @gateway.expects(:ssl_post).returns(failed_threed_secure_response)
+
+    assert response = @gateway.purchase(@amount, @credit_card, @options.merge(d3d: true, transaction_id: '1234', pa_res: '5678'))
+    assert_failure response
+
+    # puts response.inspect
+
+    assert_equal '10626866', response.params['transaction_id']
+    assert_equal 'Authorization declined', response.message
+    assert_equal '005', response.params['errorcode']
     assert response.test?
   end
 
@@ -100,6 +127,44 @@ class SoEasyPayTest < Test::Unit::TestCase
         <FSStatus xsi:type="xsd:string">0000</FSStatus>
       </return>
     </tns:SaleTransactionResponse>
+  </soap:Body>
+</soap:Envelope>
+    XML
+  end
+
+  def successful_threed_secure_response
+    <<-XML
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:soapenc="http://www.w3.org/2003/05/soap-encoding" xmlns:tns="urn:Interface" xmlns:types="urn:Interface/encodedTypes" xmlns:rpc="http://www.w3.org/2003/05/soap-rpc" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <soap:Body>
+    <tns:S3DConfirmResponse>
+      <rpc:result xmlns="">return</rpc:result>
+      <return soapenc:id="id1" xsi:type="tns:S3DConfirmResponse">
+        <transactionID xsi:type="xsd:string">10626864</transactionID>
+        <status xsi:type="xsd:string">Authorized</status>
+        <errorcode xsi:type="xsd:string">000</errorcode>
+        <errormessage xsi:type="xsd:string">Transaction successful</errormessage>
+      </return>
+    </tns:S3DConfirmResponse>
+  </soap:Body>
+</soap:Envelope>
+    XML
+  end
+
+  def failed_threed_secure_response
+    <<-XML
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:soapenc="http://www.w3.org/2003/05/soap-encoding" xmlns:tns="urn:Interface" xmlns:types="urn:Interface/encodedTypes" xmlns:rpc="http://www.w3.org/2003/05/soap-rpc" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <soap:Body>
+    <tns:S3DConfirmResponse>
+      <rpc:result xmlns="">return</rpc:result>
+      <return soapenc:id="id1" xsi:type="tns:S3DConfirmResponse">
+        <transactionID xsi:type="xsd:string">10626866</transactionID>
+        <status xsi:type="xsd:string">Not Authorized</status>
+        <errorcode xsi:type="xsd:string">005</errorcode>
+        <errormessage xsi:type="xsd:string">Authorization declined</errormessage>
+      </return>
+    </tns:S3DConfirmResponse>
   </soap:Body>
 </soap:Envelope>
     XML
