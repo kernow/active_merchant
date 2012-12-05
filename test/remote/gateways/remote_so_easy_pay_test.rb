@@ -50,6 +50,8 @@ class RemoteSoEasyPayTest < Test::Unit::TestCase
       :currency => 'GBP',
       :email => 'an@email.com'
     }
+
+
   end
 
   def test_successful_purchase
@@ -58,19 +60,28 @@ class RemoteSoEasyPayTest < Test::Unit::TestCase
     assert_equal 'Transaction successful', response.message
   end
 
-  def test_successful_purchase_with_3d_secure
-    assert response = @gateway.purchase(@amount, @credit_card_d3d, @options_d3d.merge(:d3d => true))
+  def test_purchase_with_3d_secure
+    assert response = @gateway.purchase(@amount, @credit_card_d3d, @options_d3d)
     assert_failure response
     assert_equal 'Issuer authentication required (3D)', response.message
     assert '333', response.params['errorcode']
     assert 'https://secure.soeasypay.com/ThreeDSimulator.aspx', response.params['avs_result']
   end
 
-  # def test_unsuccessful_purchase
-  #   assert response = @gateway.purchase(@amount, @declined_card, @options)
+  # Not sure this can be tested sucessfully with a remote test
+  # def test_successful_purchase_with_3d_secure
+  #   assert response = @gateway.purchase(@amount, @credit_card_d3d, { :transaction_id => '1234', :pa_res => '5678', :d3d => true })
   #   assert_failure response
-  #   assert_equal 'REPLACE WITH FAILED PURCHASE MESSAGE', response.message
+  #   assert_equal 'Issuer authentication required (3D)', response.message
+  #   assert '333', response.params['errorcode']
+  #   assert 'https://secure.soeasypay.com/ThreeDSimulator.aspx', response.params['avs_result']
   # end
+
+  def test_unsuccessful_purchase
+    assert response = @gateway.purchase(@amount, @declined_card, @options)
+    assert_failure response
+    assert_equal 'Invalid card', response.message
+  end
 
   # def test_authorize_and_capture
   #   amount = @amount

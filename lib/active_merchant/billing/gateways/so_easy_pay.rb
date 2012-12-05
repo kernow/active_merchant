@@ -36,8 +36,34 @@ module ActiveMerchant #:nodoc:
       end
 
       def purchase(money, creditcard, options = {})
-        requires!(options, :order_id)
-        request = build_request('sale', money, creditcard, options)
+        requires!(options, :order_id) unless options[:d3d]
+
+        if options[:d3d]
+          requires!(options, :transaction_id, :pa_res)
+        end
+
+        if options[:d3d]
+          request = build_request do |xml|
+            xml.tag! 'tns:S3DConfirm' do
+              xml.tag! 'S3DConfirmRequest', { 'soapenc:id' => 'id0', 'xsi:type' => 'tns:S3DConfirmRequest' } do
+                add_merchant_data(xml, options)
+                add_3d_data(xml, options)
+              end
+            end
+          end
+        else
+          request = build_request do |xml|
+            xml.tag! 'tns:SaleTransaction' do
+              xml.tag! 'SaleTransactionRequest', { 'soapenc:id' => 'id0', 'xsi:type' => 'tns:SaleTransactionRequest' } do
+                add_merchant_data(xml, options)
+                add_customer_data(xml, options)
+                add_address(xml, options)
+                add_creditcard(xml, creditcard)
+                add_invoice(xml, money, options)
+              end
+            end
+          end
+        end
         commit(request)
       end
 
@@ -81,12 +107,18 @@ module ActiveMerchant #:nodoc:
         add_pair(xml, 'password', @options[:password])
       end
 
+      def add_3d_data(xml, options)
+        add_pair(xml, 'transactionID', options[:transaction_id])
+        add_pair(xml, 'paRES', options[:pa_res])
+      end
+
       def add_pair(xml, name, value)
         xml.tag! name,  { 'xsi:type' => 'xsd:string' }, value
       end
 
-      # Where we actually build the full SOAP request using builder
-      def build_request(action, money, creditcard, options)
+      # Build the standard xml used in all requests, this method accepts a block which is called
+      # passing the builder object
+      def build_request(&block)
         xml = Builder::XmlMarkup.new :indent => 2
         xml.instruct!
         xml.tag! 'soap12:Envelope', { 'xmlns:xsi'     => 'http://www.w3.org/2001/XMLSchema-instance',
@@ -98,21 +130,14 @@ module ActiveMerchant #:nodoc:
                                       'xmlns:soap12'  => 'http://www.w3.org/2003/05/soap-envelope' } do
 
           xml.tag! 'soap12:Body', { 'soap12:encodingStyle' => 'http://www.w3.org/2003/05/soap-encoding' } do
-            xml.tag! 'tns:SaleTransaction' do
-              xml.tag! 'SaleTransactionRequest', { 'soapenc:id' => 'id0', 'xsi:type' => 'tns:SaleTransactionRequest' } do
-                add_merchant_data(xml, options)
-                add_customer_data(xml, options)
-                add_address(xml, options)
-                add_creditcard(xml, creditcard)
-                add_invoice(xml, money, options)
-              end
-            end
+            block.call(xml)
           end
         end
         xml.target!
       end
 
       def parse(xml)
+        # puts "***** response"
         # puts xml
         response = {}
         xml = REXML::Document.new(xml)
@@ -138,6 +163,7 @@ module ActiveMerchant #:nodoc:
       # def commit(action, money, creditcard, options)
       def commit(request)
         # request = build_request(action, money, creditcard, options)
+        # puts "***** request"
         # puts request
         response = parse ssl_post(self.live_url, request, { 'Content-Type' => 'application/soap+xml; charset=utf-8' })
         # puts "****"
