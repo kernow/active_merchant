@@ -513,6 +513,10 @@ skipjack:
   login: X
   password: Y
 
+so_easy_pay:
+  login: login
+  password: password
+
 stripe:
   login:
 
