@@ -67,7 +67,7 @@ module ActiveMerchant #:nodoc:
         add_credit_card_or_token(post, credit_card_or_token, options)
         add_address(post, options)
         add_customer_data(post, options)
-        add_optional_data(post, options)
+        add_optional_data(post, credit_card_or_token, options)
 
         commit(:purchase, post)
       end
@@ -82,7 +82,7 @@ module ActiveMerchant #:nodoc:
         add_credit_card_or_token(post, credit_card_or_token, options)
         add_address(post, options)
         add_customer_data(post, options)
-        add_optional_data(post, options)
+        add_optional_data(post, credit_card_or_token, options)
 
         commit(:authorization, post)
       end
@@ -179,10 +179,12 @@ module ActiveMerchant #:nodoc:
         add_pair(post, :ClientIPAddress, options[:ip])
       end
 
-      def add_optional_data(post, options)
+      def add_optional_data(post, credit_card_or_token, options)
         add_pair(post, :GiftAidPayment, options[:gift_aid_payment]) unless options[:gift_aid_payment].blank?
         add_pair(post, :Apply3DSecure, options[:apply_3d_secure]) unless options[:apply_3d_secure].blank?
-        add_pair(post, :CreateToken, 1) unless options[:store].blank?
+        unless credit_card_or_token.is_a? String
+          add_pair(post, :CreateToken, 1) unless options[:store].blank?
+        end
       end
 
       def add_address(post, options)
@@ -241,7 +243,7 @@ module ActiveMerchant #:nodoc:
 
       def add_token_details(post, token, options)
         add_token(post, token)
-        add_pair(post, :StoreToken, options[:store_token])
+        add_pair(post, :StoreToken, 1) unless options[:store].blank?
       end
 
       def add_token(post, token)
@@ -371,4 +373,3 @@ module ActiveMerchant #:nodoc:
     end
   end
 end
-
