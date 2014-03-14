@@ -195,7 +195,7 @@ module ActiveMerchant #:nodoc:
           add_pair(post, :BillingAddress1, billing_address[:address1])
           add_pair(post, :BillingAddress2, billing_address[:address2])
           add_pair(post, :BillingCity, billing_address[:city])
-          add_pair(post, :BillingState, billing_address[:state]) if billing_address[:country] == 'US'
+          add_pair(post, :BillingState, billing_address[:state]) if billing_address[:country].downcase == 'us'
           add_pair(post, :BillingCountry, billing_address[:country])
           add_pair(post, :BillingPostCode, billing_address[:zip])
         end
@@ -207,7 +207,7 @@ module ActiveMerchant #:nodoc:
           add_pair(post, :DeliveryAddress1, shipping_address[:address1])
           add_pair(post, :DeliveryAddress2, shipping_address[:address2])
           add_pair(post, :DeliveryCity, shipping_address[:city])
-          add_pair(post, :DeliveryState, shipping_address[:state]) if shipping_address[:country] == 'US'
+          add_pair(post, :DeliveryState, shipping_address[:state]) if shipping_address[:country].downcase == 'us'
           add_pair(post, :DeliveryCountry, shipping_address[:country])
           add_pair(post, :DeliveryPostCode, shipping_address[:zip])
         end
